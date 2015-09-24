@@ -13,11 +13,12 @@ object Main extends App {
   implicit val materializer = ActorMaterializer()
 
   val r = JRIEngine.createEngine()
+  r.parseAndEval("x <- 5")
 
   val route = path("prediction") {
     get {
       complete {
-        r.parseAndEval("x <- 5\nx").asString()
+        r.parseAndEval("x").asString()
       }
     }
   }
