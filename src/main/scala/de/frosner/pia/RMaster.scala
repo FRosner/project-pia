@@ -4,18 +4,19 @@ import akka.actor.{Terminated, Props, Actor}
 import akka.event.Logging
 import akka.routing.{SmallestMailboxRoutingLogic, Router, ActorRefRoutee}
 
-class RMaster extends Actor {
+class RMaster(val concurrencyFactor: Int, rInterface: Option[String], rPort: Option[Int]) extends Actor {
 
-  val log = Logging(context.system, this)
+  private val log = Logging(context.system, this)
 
   private def createSlave = {
-    val slave = context.actorOf(Props[RSlave])
+    val slave = context.actorOf(RSlave.props(rInterface, rPort))
     context.watch(slave)
     slave
   }
 
   private var router = {
-    val routees = Vector.fill(2) {
+    log.info(s"""Spawning $concurrencyFactor R slave${if (concurrencyFactor > 1) "s" else ""}""")
+    val routees = Vector.fill(concurrencyFactor) {
       ActorRefRoutee(createSlave)
     }
     Router(SmallestMailboxRoutingLogic(), routees)
@@ -24,5 +25,12 @@ class RMaster extends Actor {
   def receive = {
     case y: Double => router.route(y, sender())
   }
+
+}
+
+object RMaster {
+
+  def props(concurrencyFactor: Int, rInterface: Option[String], rPort: Option[Int]): Props =
+    Props(new RMaster(concurrencyFactor, rInterface, rPort))
 
 }

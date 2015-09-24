@@ -1,15 +1,18 @@
 package de.frosner.pia
 
-import akka.actor.Actor
+import akka.actor.{Props, Actor}
 import akka.event.Logging
 import org.rosuda.REngine.Rserve.RConnection
 
-class RSlave extends Actor {
+class RSlave(val rInterface: Option[String], rPort: Option[Int]) extends Actor {
+  
+  private val actualInterface = rInterface.getOrElse("127.0.0.1")
+  private val actualPort = rPort.getOrElse(6311)
 
-  val log = Logging(context.system, this)
+  private val log = Logging(context.system, this)
 
-  log.info("Starting R engine")
-  val r = new RConnection()
+  log.info(s"Connecting to R on $actualInterface:$actualPort")
+  private val r = new RConnection(actualInterface, actualPort)
   r.eval("x <- 5")
 
   def receive = {
@@ -19,4 +22,10 @@ class RSlave extends Actor {
     }
   }
 
+}
+
+object RSlave {
+  
+  def props(rInterface: Option[String], rPort: Option[Int]): Props = Props(new RSlave(rInterface, rPort))
+  
 }
