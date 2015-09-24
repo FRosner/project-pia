@@ -30,9 +30,8 @@ libraryDependencies ++= {
     "com.typesafe.akka" %% "akka-http-core-experimental" % akkaHttpVersion,
     "com.typesafe.akka" %% "akka-http-spray-json-experimental" % akkaHttpVersion,
     "com.typesafe.akka" %% "akka-http-testkit-experimental" % akkaHttpVersion % "test",
-    "com.github.lucarosellini.rJava" % "REngine" % "0.9-7",
-    "com.github.lucarosellini.rJava" % "JRI" % "0.9-7",
-    "com.github.lucarosellini.rJava" % "JRIEngine" % "0.9-7",
+    "org.nuiton.thirdparty" % "REngine" % "1.7-3",
+    "org.nuiton.thirdparty" % "Rserve" % "1.7-3",
     "org.scalatest" %% "scalatest" % "2.2.4" % "test"
   )
 }

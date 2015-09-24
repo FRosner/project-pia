@@ -1,24 +1,28 @@
 package de.frosner.pia
 
-import akka.actor.ActorSystem
+import akka.actor.{Props, ActorSystem}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{StatusCodes}
 import akka.stream.ActorMaterializer
+import akka.pattern.ask
 import akka.http.scaladsl.server.Directives._
-import org.rosuda.REngine.JRI.JRIEngine
+import akka.util.Timeout
+import scala.concurrent.duration._
+
+import scala.concurrent.Await
 
 object Main extends App {
 
   implicit val system = ActorSystem("pia-system")
   implicit val materializer = ActorMaterializer()
+  val timeout = Timeout(5 seconds)
 
-  val r = JRIEngine.createEngine()
-  r.parseAndEval("x <- 5")
+  val rMaster = system.actorOf(Props[RMaster])
 
   val route = path("prediction") {
     get {
       complete {
-        r.parseAndEval("x").asString()
+        Await.result(rMaster.ask(5d)(timeout.duration), timeout.duration).toString
       }
     }
   }
@@ -27,7 +31,7 @@ object Main extends App {
   val port = 8080
   val binding = Http().bindAndHandle(route, interface, port)
 
-  println(s"Pia online at http://$interface:$port/\nPress RETURN to stop...")
+  println(s"Pia online at http://$interface:$port/...")
   Console.readLine()
 
   import system.dispatcher
