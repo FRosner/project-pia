@@ -17,7 +17,7 @@ object Main extends App {
   val route = path("prediction") {
     get {
       complete {
-        r.parseAndEval("5").asString()
+        r.parseAndEval("x <- 5\nx").asString()
       }
     }
   }
