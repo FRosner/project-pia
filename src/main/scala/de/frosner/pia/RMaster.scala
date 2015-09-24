@@ -22,13 +22,7 @@ class RMaster extends Actor {
   }
 
   def receive = {
-    case y: Double => router.route(y, sender());
-    case Terminated(slave) => {
-      log.warning(s"Slave $slave terminated, attempting to spawn a new one")
-      router = router.removeRoutee(slave)
-      val newSlave = createSlave
-      router = router.addRoutee(newSlave)
-    }
+    case y: Double => router.route(y, sender())
   }
 
 }
