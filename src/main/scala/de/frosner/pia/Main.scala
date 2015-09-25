@@ -2,7 +2,7 @@ package de.frosner.pia
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.{StatusCodes}
+import akka.http.scaladsl.model.{HttpHeader, HttpResponse, StatusCodes}
 import akka.stream.ActorMaterializer
 import akka.pattern.ask
 import akka.http.scaladsl.server.Directives._
@@ -10,7 +10,8 @@ import akka.util.Timeout
 import scala.concurrent.duration._
 
 import scala.concurrent.Await
-import scala.util.Try
+import scala.io.Source
+import scala.util.{Failure, Success, Try}
 
 object Main extends App {
 
@@ -38,9 +39,9 @@ object Main extends App {
     DEFAULT_CONCURRENCY_FACTOR
   }
 
-  val rServerInterface = Option(System.getProperty("pia.rServerInterface"))
+  private val rServerInterface = Option(System.getProperty("pia.rServerInterface"))
 
-  val rServerPort = {
+  private val rServerPort = {
     val maybePort = Option(System.getProperty("pia.rServerPort"))
     maybePort.flatMap(port => Try(Some(port.toInt)).getOrElse{
       println(s"Invalid R server port format: Falling back to default")
@@ -48,15 +49,29 @@ object Main extends App {
     })
   }
 
+  private val initScript = {
+    val location = Option(System.getProperty("pia.script.init")).getOrElse("init.R")
+    Source.fromFile(location).mkString
+  }
+
+  private val predictScript = {
+    val location = Option(System.getProperty("pia.script.predict")).getOrElse("predict.R")
+    Source.fromFile(location).mkString
+  }
+
   private implicit val system = ActorSystem("pia")
   private implicit val materializer = ActorMaterializer()
 
-  val rMaster = system.actorOf(RMaster.props(concurrencyFactor, rServerInterface, rServerPort))
+  val rMaster = system.actorOf(RMaster.props(concurrencyFactor, rServerInterface, rServerPort, initScript, predictScript))
 
   val route = path("prediction") {
     get {
       complete {
-        Await.result(rMaster.ask(5d)(timeout.duration), timeout.duration).toString
+        val result = Await.result(rMaster.ask(5d)(timeout.duration), timeout.duration)
+        result match {
+          case Success(score: Double) => HttpResponse(StatusCodes.OK, entity = score.toString)
+          case Failure(_) => HttpResponse(StatusCodes.InternalServerError)
+        }
       }
     }
   }

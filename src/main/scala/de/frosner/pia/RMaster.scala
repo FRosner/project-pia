@@ -4,12 +4,16 @@ import akka.actor.{Terminated, Props, Actor}
 import akka.event.Logging
 import akka.routing.{SmallestMailboxRoutingLogic, Router, ActorRefRoutee}
 
-class RMaster(val concurrencyFactor: Int, rInterface: Option[String], rPort: Option[Int]) extends Actor {
+class RMaster(concurrencyFactor: Int,
+              rInterface: Option[String],
+              rPort: Option[Int],
+              initScript: String,
+              predictScript: String) extends Actor {
 
   private val log = Logging(context.system, this)
 
   private def createSlave = {
-    val slave = context.actorOf(RSlave.props(rInterface, rPort))
+    val slave = context.actorOf(RSlave.props(rInterface, rPort, initScript, predictScript))
     context.watch(slave)
     slave
   }
@@ -24,13 +28,18 @@ class RMaster(val concurrencyFactor: Int, rInterface: Option[String], rPort: Opt
 
   def receive = {
     case y: Double => router.route(y, sender())
+    case default => log.warning(s"Received unrecognized message: $default")
   }
 
 }
 
 object RMaster {
 
-  def props(concurrencyFactor: Int, rInterface: Option[String], rPort: Option[Int]): Props =
-    Props(new RMaster(concurrencyFactor, rInterface, rPort))
+  def props(concurrencyFactor: Int,
+            rInterface: Option[String],
+            rPort: Option[Int],
+            initScript: String,
+            predictScript: String): Props =
+    Props(new RMaster(concurrencyFactor, rInterface, rPort, initScript, predictScript))
 
 }

@@ -2,30 +2,44 @@ package de.frosner.pia
 
 import akka.actor.{Props, Actor}
 import akka.event.Logging
+import org.rosuda.REngine.REXP
 import org.rosuda.REngine.Rserve.RConnection
 
-class RSlave(val rInterface: Option[String], rPort: Option[Int]) extends Actor {
+import scala.util.{Failure, Try}
+
+class RSlave(rInterface: Option[String], rPort: Option[Int], initScript: String, predictScript: String) extends Actor {
   
   private val actualInterface = rInterface.getOrElse("127.0.0.1")
   private val actualPort = rPort.getOrElse(6311)
 
   private val log = Logging(context.system, this)
 
+  private def executeWithLogging(r: RConnection, script: String, scriptType: String): Try[REXP] = {
+    if (log.isDebugEnabled) log.debug(s"Executing $scriptType script:\n$script")
+    else log.info(s"Executing $scriptType script")
+    Try(r.eval(script)).recoverWith {
+      case t: Throwable => {
+        log.error(s"Executing $scriptType failed: $t")
+        Failure(t)
+      }
+    }
+  }
+
   log.info(s"Connecting to R on $actualInterface:$actualPort")
   private val r = new RConnection(actualInterface, actualPort)
-  r.eval("x <- 5")
+
+  executeWithLogging(r, initScript, "init")
 
   def receive = {
-    case y: Double => {
-      log.info(s"Received $y")
-      sender() ! r.parseAndEval("x").asDouble()
-    }
+    case y: Double => sender() ! executeWithLogging(r, predictScript, "predict").map(_.asDouble())
+    case default => log.warning(s"Received unrecognized message: $default")
   }
 
 }
 
 object RSlave {
   
-  def props(rInterface: Option[String], rPort: Option[Int]): Props = Props(new RSlave(rInterface, rPort))
+  def props(rInterface: Option[String], rPort: Option[Int], initScript: String, predictScript: String): Props =
+    Props(new RSlave(rInterface, rPort, initScript, predictScript))
   
 }
