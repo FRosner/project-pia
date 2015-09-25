@@ -1,3 +1,5 @@
+import sbtprotobuf.ProtobufPlugin
+
 //////////////////////////////
 // Project Meta Information //
 //////////////////////////////
@@ -16,6 +18,8 @@ fork in Compile := true
 
 scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8")
 
+Seq(ProtobufPlugin.protobufSettings: _*)
+
 //////////////////////////
 // Library Dependencies //
 //////////////////////////
@@ -32,6 +36,7 @@ libraryDependencies ++= {
     "com.typesafe.akka" %% "akka-http-testkit-experimental" % akkaHttpVersion % "test",
     "org.nuiton.thirdparty" % "REngine" % "1.7-3",
     "org.nuiton.thirdparty" % "Rserve" % "1.7-3",
+    "net.sandrogrzicic" %% "scalabuff-runtime" % "1.4.0",
     "org.scalatest" %% "scalatest" % "2.2.4" % "test"
   )
 }
