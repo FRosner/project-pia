@@ -14,10 +14,10 @@ class RSlave(rInterface: Option[String], rPort: Option[Int], initScript: String,
 
   private val log = Logging(context.system, this)
 
-  private def executeWithLogging(r: RConnection, script: String, scriptType: String): Try[REXP] = {
+  private def executeWithLogging(r: RConnection, script: () => REXP, scriptType: String): Try[REXP] = {
     if (log.isDebugEnabled) log.debug(s"Executing $scriptType script:\n$script")
     else log.info(s"Executing $scriptType script")
-    Try(r.eval(script)).recoverWith {
+    Try(script()).recoverWith {
       case t: Throwable => {
         log.error(s"Executing $scriptType failed: $t")
         Failure(t)
@@ -28,10 +28,16 @@ class RSlave(rInterface: Option[String], rPort: Option[Int], initScript: String,
   log.info(s"Connecting to R on $actualInterface:$actualPort")
   private val r = new RConnection(actualInterface, actualPort)
 
-  executeWithLogging(r, initScript, "init")
+  executeWithLogging(r, () => r.eval(initScript), "init")
 
   def receive = {
-    case y: Double => sender() ! executeWithLogging(r, predictScript, "predict").map(_.asDouble())
+    case y: REXP => {
+      val toExecute = () => {
+        r.assign("y", y)
+        r.eval(predictScript)
+      }
+      sender() ! executeWithLogging(r, toExecute, "predict").map(_.asDouble())
+    }
     case default => log.warning(s"Received unrecognized message: $default")
   }
 

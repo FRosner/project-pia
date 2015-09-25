@@ -1,8 +1,9 @@
 package de.frosner.pia
 
-import akka.actor.{Terminated, Props, Actor}
+import akka.actor.{Props, Actor}
 import akka.event.Logging
 import akka.routing.{SmallestMailboxRoutingLogic, Router, ActorRefRoutee}
+import org.rosuda.REngine.REXP
 
 class RMaster(concurrencyFactor: Int,
               rInterface: Option[String],
@@ -27,7 +28,7 @@ class RMaster(concurrencyFactor: Int,
   }
 
   def receive = {
-    case y: Double => router.route(y, sender())
+    case y: REXP => router.route(y, sender())
     case default => log.warning(s"Received unrecognized message: $default")
   }
 

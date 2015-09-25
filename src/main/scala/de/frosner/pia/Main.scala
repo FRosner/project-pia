@@ -2,11 +2,12 @@ package de.frosner.pia
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.{HttpHeader, HttpResponse, StatusCodes}
+import akka.http.scaladsl.model.{HttpResponse, StatusCodes}
 import akka.stream.ActorMaterializer
 import akka.pattern.ask
 import akka.http.scaladsl.server.Directives._
 import akka.util.Timeout
+import org.rosuda.REngine.{REXPDouble}
 import scala.concurrent.duration._
 
 import scala.concurrent.Await
@@ -67,7 +68,8 @@ object Main extends App {
   val route = path("prediction") {
     get {
       complete {
-        val result = Await.result(rMaster.ask(5d)(timeout.duration), timeout.duration)
+        val data = new REXPDouble(5)
+        val result = Await.result(rMaster.ask(data)(timeout.duration), timeout.duration)
         result match {
           case Success(score: Double) => HttpResponse(StatusCodes.OK, entity = score.toString)
           case Failure(_) => HttpResponse(StatusCodes.InternalServerError)
