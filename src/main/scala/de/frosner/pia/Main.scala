@@ -9,7 +9,7 @@ import akka.pattern.ask
 import akka.http.scaladsl.server.Directives._
 import akka.util.Timeout
 import de.frosner.pia.Observations.Observation
-import org.rosuda.REngine.{REXPDouble}
+import org.rosuda.REngine.{RList, REXP, REXPDouble}
 import scala.concurrent.duration._
 
 import scala.concurrent.Await
@@ -73,8 +73,9 @@ object Main extends App {
     post {
       entity(observationUnmarshaller) { observation =>
         complete {
-          val data = new REXPDouble(observation.getDoubleFeature)
-          val result = Await.result(rMaster.ask(data)(timeout.duration), timeout.duration)
+          val data = new REXPDouble(observation.getDoubleFeature).asInstanceOf[REXP]
+          val dataFrame = REXP.createDataFrame(new RList(Array(data), Array("doubleFeature")))
+          val result = Await.result(rMaster.ask(dataFrame)(timeout.duration), timeout.duration)
           result match {
             case Success(score: Double) => HttpResponse(StatusCodes.OK, entity = score.toString)
             case Failure(_) => HttpResponse(StatusCodes.InternalServerError)
