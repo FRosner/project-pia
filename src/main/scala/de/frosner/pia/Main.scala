@@ -9,12 +9,15 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{HttpMethods, HttpHeader, HttpResponse, StatusCodes, headers, Uri}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import com.twitter.util.LruMap
 import de.frosner.pia.Observations.Observation
 import org.rosuda.REngine.{RList, REXP, REXPDouble}
+import spray.json.{JsString, JsArray}
 import scala.util.{Try, Failure, Success}
+import scala.collection.JavaConversions.mapAsScalaConcurrentMap
 
 object Main extends App {
 
@@ -23,7 +26,7 @@ object Main extends App {
   private implicit val system = ActorSystem("pia")
   private implicit val materializer = ActorMaterializer()(system)
 
-  private val predictions = new ConcurrentHashMap[UUID, Option[Try[Result]]]()
+  private val predictions = mapAsScalaConcurrentMap(new ConcurrentHashMap[UUID, Option[Try[Result]]]())
 
   val rMaster = system.actorOf(RMaster.props(
     concurrencyFactor = Options.concurrentRConnections,
@@ -40,6 +43,11 @@ object Main extends App {
 
   private val predictionsEndpoint = "predictions"
   val route = path(predictionsEndpoint) {
+    get {
+      complete {
+        JsArray(predictions.keys.map(key => JsString(key.toString)).toVector)
+      }
+    } ~
     post {
       entity(observationUnmarshaller) { observation =>
         complete {
@@ -50,7 +58,6 @@ object Main extends App {
           (rMaster ? dataFrame)(Timeout(1000)).onSuccess {
             case result: Try[Result] => predictions.replace(uuid, Some(result))
           }(system.dispatcher)
-          println(predictions)
           HttpResponse(
             status = StatusCodes.Created,
             headers = List(headers.Location(Uri(s"$interface:$port/$predictionsEndpoint/${uuid.toString}")))
