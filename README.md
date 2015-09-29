@@ -18,7 +18,7 @@
 | `/predictions`      | POST | create prediction job using the given feature vector and return location header containing the endpoint `/predictions/<id>` (201) |
 | `/predictions`      | PUT | operation not supported (405) |
 | `/predictions`      | DELETE | operation not supported (405) |
-| `/predictions/<id>` | GET | prediction result with given id (200), prediction not finished (204), id is invalid (404) |
+| `/predictions/<id>` | GET | prediction result with given id (200), prediction not finished (204), prediction errored (500), id is invalid (404) |
 | `/predictions/<id>` | POST | operation not supported (405) |
 | `/predictions/<id>` | PUT | operation not supported (405) |
 | `/predictions/<id>` | DELETE | operation not supported (405) |

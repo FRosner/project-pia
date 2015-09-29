@@ -4,9 +4,11 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 import akka.actor.ActorSystem
+import akka.http.javadsl.server.values.PathMatchers
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.pattern.ask
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.{HttpMethods, HttpHeader, HttpResponse, StatusCodes, headers, Uri}
+import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
@@ -15,7 +17,7 @@ import akka.util.Timeout
 import com.twitter.util.LruMap
 import de.frosner.pia.Observations.Observation
 import org.rosuda.REngine.{RList, REXP, REXPDouble}
-import spray.json.{JsString, JsArray}
+import spray.json.{JsNumber, JsString, JsArray}
 import scala.util.{Try, Failure, Success}
 import scala.collection.JavaConversions.mapAsScalaConcurrentMap
 
@@ -47,8 +49,7 @@ object Main extends App {
       complete {
         JsArray(predictions.keys.map(key => JsString(key.toString)).toVector)
       }
-    } ~
-    post {
+    } ~ post {
       entity(observationUnmarshaller) { observation =>
         complete {
           val data = new REXPDouble(observation.getDoubleFeature).asInstanceOf[REXP]
@@ -61,6 +62,20 @@ object Main extends App {
           HttpResponse(
             status = StatusCodes.Created,
             headers = List(headers.Location(Uri(s"$interface:$port/$predictionsEndpoint/${uuid.toString}")))
+          )
+        }
+      }
+    }
+  } ~ path(predictionsEndpoint / JavaUUID) { predictionId =>
+    get {
+      complete {
+        predictions.get(predictionId) match {
+          case None => HttpResponse(status = StatusCodes.NotFound)
+          case Some(None) => HttpResponse(status = StatusCodes.NoContent)
+          case Some(Some(Failure(_))) => HttpResponse(status = StatusCodes.InternalServerError)
+          case Some(Some(Success(result))) => HttpResponse(
+            status = StatusCodes.OK,
+            entity = HttpEntity.apply(ContentTypes.`application/json`, result.toString)
           )
         }
       }
