@@ -41,7 +41,7 @@ object Options {
     }
   }
 
-  val concurrentHttpConnections = 2
+  val concurrentHttpConnections = 1
 
   private val DEFAULT_R_SERVER_INTERFACE = "127.0.0.1"
   val rServerInterface = Option(System.getProperty("pia.rServerInterface")).getOrElse {
