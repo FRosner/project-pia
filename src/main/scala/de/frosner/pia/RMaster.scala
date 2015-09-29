@@ -6,8 +6,8 @@ import akka.routing.{SmallestMailboxRoutingLogic, Router, ActorRefRoutee}
 import org.rosuda.REngine.REXP
 
 class RMaster(concurrencyFactor: Int,
-              rInterface: Option[String],
-              rPort: Option[Int],
+              rInterface: String,
+              rPort: Int,
               initScript: String,
               predictScript: String) extends Actor {
 
@@ -37,8 +37,8 @@ class RMaster(concurrencyFactor: Int,
 object RMaster {
 
   def props(concurrencyFactor: Int,
-            rInterface: Option[String],
-            rPort: Option[Int],
+            rInterface: String,
+            rPort: Int,
             initScript: String,
             predictScript: String): Props =
     Props(new RMaster(concurrencyFactor, rInterface, rPort, initScript, predictScript))

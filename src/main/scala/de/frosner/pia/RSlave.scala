@@ -7,10 +7,7 @@ import org.rosuda.REngine.Rserve.RConnection
 
 import scala.util.{Failure, Try}
 
-class RSlave(rInterface: Option[String], rPort: Option[Int], initScript: String, predictScript: String) extends Actor {
-  
-  private val actualInterface = rInterface.getOrElse("127.0.0.1")
-  private val actualPort = rPort.getOrElse(6311)
+class RSlave(rInterface: String, rPort: Int, initScript: String, predictScript: String) extends Actor {
 
   private val log = Logging(context.system, this)
 
@@ -25,8 +22,8 @@ class RSlave(rInterface: Option[String], rPort: Option[Int], initScript: String,
     }
   }
 
-  log.info(s"Connecting to R on $actualInterface:$actualPort")
-  private val r = new RConnection(actualInterface, actualPort)
+  log.info(s"Connecting to R on $rInterface:$rPort")
+  private val r = new RConnection(rInterface, rPort)
 
   executeWithLogging(r, () => r.eval(initScript), "init")
 
@@ -45,7 +42,7 @@ class RSlave(rInterface: Option[String], rPort: Option[Int], initScript: String,
 
 object RSlave {
   
-  def props(rInterface: Option[String], rPort: Option[Int], initScript: String, predictScript: String): Props =
+  def props(rInterface: String, rPort: Int, initScript: String, predictScript: String): Props =
     Props(new RSlave(rInterface, rPort, initScript, predictScript))
   
 }
