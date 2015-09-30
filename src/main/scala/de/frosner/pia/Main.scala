@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap
 import akka.actor.ActorSystem
 import akka.http.javadsl.server.values.PathMatchers
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import akka.http.scaladsl.model.headers.{RawHeader, HttpOrigin}
 import akka.pattern.ask
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
@@ -44,39 +45,41 @@ object Main extends App {
   val port = 8080
 
   private val predictionsEndpoint = "predictions"
-  val route = path(predictionsEndpoint) {
-    get {
-      complete {
-        JsArray(predictions.keys.map(key => JsString(key.toString)).toVector)
-      }
-    } ~ post {
-      entity(observationUnmarshaller) { observation =>
+  val route = respondWithHeader(RawHeader("Access-Control-Allow-Origin", "*")) {
+    path(predictionsEndpoint) {
+      get {
         complete {
-          val data = new REXPDouble(observation.getDoubleFeature).asInstanceOf[REXP]
-          val dataFrame = REXP.createDataFrame(new RList(Array(data), Array("doubleFeature")))
-          val uuid = UUID.randomUUID()
-          predictions.put(uuid, None)
-          (rMaster ? dataFrame)(Timeout(1000)).onSuccess {
-            case result: Try[Result] => predictions.replace(uuid, Some(result))
-          }(system.dispatcher)
-          HttpResponse(
-            status = StatusCodes.Created,
-            headers = List(headers.Location(Uri(s"$interface:$port/$predictionsEndpoint/${uuid.toString}")))
-          )
+          JsArray(predictions.keys.map(key => JsString(key.toString)).toVector)
+        }
+      } ~ post {
+        entity(observationUnmarshaller) { observation =>
+          complete {
+            val data = new REXPDouble(observation.getDoubleFeature).asInstanceOf[REXP]
+            val dataFrame = REXP.createDataFrame(new RList(Array(data), Array("doubleFeature")))
+            val uuid = UUID.randomUUID()
+            predictions.put(uuid, None)
+            (rMaster ? dataFrame)(Timeout(1000)).onSuccess {
+              case result: Try[Result] => predictions.replace(uuid, Some(result))
+            }(system.dispatcher)
+            HttpResponse(
+              status = StatusCodes.Created,
+              headers = List(headers.Location(Uri(s"$interface:$port/$predictionsEndpoint/${uuid.toString}")))
+            )
+          }
         }
       }
-    }
-  } ~ path(predictionsEndpoint / JavaUUID) { predictionId =>
-    get {
-      complete {
-        predictions.get(predictionId) match {
-          case None => HttpResponse(status = StatusCodes.NotFound)
-          case Some(None) => HttpResponse(status = StatusCodes.NoContent)
-          case Some(Some(Failure(_))) => HttpResponse(status = StatusCodes.InternalServerError)
-          case Some(Some(Success(result))) => HttpResponse(
-            status = StatusCodes.OK,
-            entity = HttpEntity.apply(ContentTypes.`application/json`, result.toString)
-          )
+    } ~ path(predictionsEndpoint / JavaUUID) { predictionId =>
+      get {
+        complete {
+          predictions.get(predictionId) match {
+            case None => HttpResponse(status = StatusCodes.NotFound)
+            case Some(None) => HttpResponse(status = StatusCodes.NoContent)
+            case Some(Some(Failure(_))) => HttpResponse(status = StatusCodes.InternalServerError)
+            case Some(Some(Success(result))) => HttpResponse(
+              status = StatusCodes.OK,
+              entity = HttpEntity.apply(ContentTypes.`application/json`, result.toString)
+            )
+          }
         }
       }
     }
