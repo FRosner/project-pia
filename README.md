@@ -8,7 +8,10 @@
     1. Install Rserve if not installed `install.packages("Rserve")`
     1. Start Rserve `library(Rserve); Rserve()`
 
-1. Launch application
+2. Launch application
+3. Compile javascript in `client` folder: `lein cljsbuild once dev`
+4. Launch simple static server in `client/resource/public` folder: `python -m SimpleHTTPServer 9292`
+
 
 ### REST API
 
