@@ -72,6 +72,14 @@ object Main extends App {
             )
           }
         }
+      } ~ put {
+        complete {
+          HttpResponse(status = StatusCodes.MethodNotAllowed)
+        }
+      } ~ delete {
+        complete {
+          HttpResponse(status = StatusCodes.MethodNotAllowed)
+        }
       }
     } ~ path(predictionsEndpoint / JavaUUID) { predictionId =>
       get {
@@ -88,6 +96,18 @@ object Main extends App {
               )
             }
           }
+        }
+      } ~ post {
+        complete {
+          HttpResponse(status = StatusCodes.MethodNotAllowed)
+        }
+      } ~ put {
+        complete {
+          HttpResponse(status = StatusCodes.MethodNotAllowed)
+        }
+      } ~ delete {
+        complete {
+          HttpResponse(status = StatusCodes.MethodNotAllowed)
         }
       }
     }
