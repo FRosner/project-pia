@@ -40,7 +40,10 @@ object Main extends App {
   val port = 8080
 
   private val predictionsEndpoint = "predictions"
-  val route = respondWithHeader(RawHeader("Access-Control-Allow-Origin", "*")) {
+  val route = respondWithHeaders(
+    RawHeader("Access-Control-Allow-Origin", "*"),
+    RawHeader("Access-Control-Expose-Headers", "location")
+  ) {
     path(predictionsEndpoint) {
       get {
         complete {
