@@ -1,26 +1,21 @@
 package de.frosner.pia
 
 import java.util.UUID
-import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.{TimeUnit, ConcurrentHashMap}
 
 import akka.actor.ActorSystem
-import akka.http.javadsl.server.values.PathMatchers
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import akka.http.scaladsl.model.headers.{RawHeader, HttpOrigin}
+import akka.http.scaladsl.model.headers.RawHeader
 import akka.pattern.ask
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
-import com.twitter.util.LruMap
 import de.frosner.pia.Observations.Observation
 import org.rosuda.REngine.{RList, REXP, REXPDouble}
-import spray.json.{JsNumber, JsString, JsArray}
 import scala.util.{Try, Failure, Success}
-import scala.collection.JavaConversions.mapAsScalaConcurrentMap
+import scala.collection.JavaConversions.{mapAsScalaConcurrentMap, seqAsJavaList}
 
 object Main extends App {
 
@@ -49,7 +44,14 @@ object Main extends App {
     path(predictionsEndpoint) {
       get {
         complete {
-          JsArray(predictions.keys.map(key => JsString(key.toString)).toVector)
+          val ids = seqAsJavaList(predictions.keys.map(key => {
+            Predictions.ID.newBuilder().setUuid(key.toString).build()
+          }).toSeq)
+          val message = Predictions.IDs.newBuilder().addAllIds(ids).build()
+          HttpResponse(
+            status = StatusCodes.OK,
+            entity = HttpEntity(ContentTypes.`application/octet-stream`, message.toByteArray)
+          )
         }
       } ~ post {
         entity(observationUnmarshaller) { observation =>
@@ -58,7 +60,7 @@ object Main extends App {
             val dataFrame = REXP.createDataFrame(new RList(Array(data), Array("doubleFeature")))
             val uuid = UUID.randomUUID()
             predictions.put(uuid, None)
-            (rMaster ? dataFrame)(Timeout(1000)).onSuccess {
+            (rMaster ? dataFrame)(Timeout(10, TimeUnit.SECONDS)).onSuccess {
               case result: Try[Result] => predictions.replace(uuid, Some(result))
             }(system.dispatcher)
             HttpResponse(
@@ -75,10 +77,13 @@ object Main extends App {
             case None => HttpResponse(status = StatusCodes.NotFound)
             case Some(None) => HttpResponse(status = StatusCodes.NoContent)
             case Some(Some(Failure(_))) => HttpResponse(status = StatusCodes.InternalServerError)
-            case Some(Some(Success(result))) => HttpResponse(
-              status = StatusCodes.OK,
-              entity = HttpEntity.apply(ContentTypes.`application/json`, result.toString)
-            )
+            case Some(Some(Success(result))) => {
+              val prediction = Predictions.Prediction.newBuilder().setScore(result).build
+              HttpResponse(
+                status = StatusCodes.OK,
+                entity = HttpEntity(ContentTypes.`application/octet-stream`, prediction.toByteArray)
+              )
+            }
           }
         }
       }

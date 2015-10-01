@@ -1,0 +1,22 @@
+package de.frosner.pia;
+
+option java_package = "de.frosner.pia";
+option java_outer_classname = "Predictions";
+
+message Prediction {
+
+  required double score = 1;
+
+}
+
+message ID {
+
+  required string uuid = 1;
+
+}
+
+message IDs {
+
+  repeated ID ids = 1;
+
+}
