@@ -1,6 +1,6 @@
 ### Requirements
 
-- ProtocolBuffers 2.5.0
+- ProtocolBuffers 2.6.0
 
 ### Setup
 
