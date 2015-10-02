@@ -9,8 +9,7 @@
                  [org.omcljs/om "0.9.0"]
                  [sablono "0.3.6"]]
   :cljsbuild
-  {:builds {:dev {:source-paths ["src/cljs/"
-                                 "target/generated/src/cljs"]
+  {:builds {:dev {:source-paths ["src/cljs/"]
                   :compiler {:output-to "resources/public/js/compiled/dev.js"
                              :output-dir "resources/public/js/compiled/out"
                              :optimizations :none
