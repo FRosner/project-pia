@@ -1,3 +1,7 @@
+### Architecture
+
+![image](https://cloud.githubusercontent.com/assets/3427394/10540156/b32fbeda-7405-11e5-9738-fd9c037deb1c.png)
+
 ### Requirements
 
 - ProtocolBuffers 2.6.0
