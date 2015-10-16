@@ -12,10 +12,22 @@
     1. Install Rserve if not installed `install.packages("Rserve")`
     1. Start Rserve `library(Rserve); Rserve()`
 
-2. Launch application
-3. Compile javascript in `client` folder: `lein cljsbuild once dev`
-4. Launch simple static server in `client/resource/public` folder: `python -m SimpleHTTPServer 9292`
+2. Build application `sbt assembly`
+2. `cp -R src/main/protobuf client/resources/public/`
+3. Provide `init.R` and `predict.R`
+3. Launch application `java -jar target/scala-2.10/project-pia-assembly-0.1.0-SNAPSHOT.jar`
+4. Compile javascript in `client` folder: `lein cljsbuild once dev`
+5. Launch simple static server in `client/resources/public` folder: `python -m SimpleHTTPServer 9292`
 
+### System Properties
+
+| Property                           | Function                                         |
+|------------------------------------|--------------------------------------------------|
+| `pia.concurrentRConnections`       | Number of concurrent connections to the R server |
+| `pia.rServerInterface`             | Interface of the R server |
+| `pia.rServerPort`                  | Port of the R server |
+| `pia.script.init`                  | Location of the init R script |
+| `pia.script.predict`               | Location of the predict R script |
 
 ### REST API
 

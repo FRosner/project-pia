@@ -42,3 +42,5 @@ libraryDependencies ++= {
     "org.scalatest" %% "scalatest" % "2.2.4" % "test"
   )
 }
+
+mainClass in assembly := Some("de.frosner.pia.Main")
